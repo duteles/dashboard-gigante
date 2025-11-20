@@ -2,6 +2,15 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
+  <!-- Anti-cache: força sempre carregar a versão mais recente -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <script>
+    // Meta dinâmica só para "sujar" o cache quando o arquivo muda
+    document.write('<meta name="dynamic-version" content="' + Date.now() + '">');
+  </script>
+
   <title>Dashboard de Leads</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
