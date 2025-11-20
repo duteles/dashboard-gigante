@@ -2,15 +2,6 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <!-- Anti-cache: força sempre carregar a versão mais recente -->
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
-  <script>
-    // Meta dinâmica só para "sujar" o cache quando o arquivo muda
-    document.write('<meta name="dynamic-version" content="' + Date.now() + '">');
-  </script>
-
   <title>Dashboard de Leads</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -167,7 +158,7 @@
       transition: width .35s ease-out, background .35s ease-out;
     }
 
-    /* CARD RESUMO / META MENSAL (no final) */
+    /* CARD RESUMO / META MENSAL */
     .summary-card {
       background:
         radial-gradient(circle at top left, rgba(230,0,0,.18), transparent 55%),
@@ -330,7 +321,6 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      /* sem sombra, só degrade */
       transition: transform .14s ease, filter .14s ease;
     }
 
@@ -360,14 +350,6 @@
       width: 92px;
     }
 
-    .input-hint {
-      font-size: .6rem;
-      color: var(--muted);
-      margin-bottom: 6px;
-      display: none;
-    }
-
-    /* KPIs */
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -677,7 +659,7 @@
       <div class="summary-top">
         <div>
           <div class="summary-title">Resumo do mês</div>
-          <div class="summary-text" id="summaryText">Sem dados cadastrados.</div>
+          <div class="summary-text" id="summaryText">Carregando dados...</div>
         </div>
         <div class="meta-badge">
           <span class="meta-dot"></span>
@@ -698,28 +680,14 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "dashLeads_mobile_v1";
+    // === CONFIGURAÇÃO PRINCIPAL ===
+    const API_URL = "https://script.google.com/macros/s/AKfycby-4t7aPMz0IzJVLad7LNfpPYH6dnHQjMaoQQPX7r0fGWc-WVJGw6nXKmCgAt3ngk1r/exec";
     const META_MENSAL = 600;
-    const DAILY_GOAL = 20; // meta atual
+    const DAILY_GOAL = 20;
 
-    // Linhas de meta para os gráficos
-    const GOAL_LINE_PAST = 10;     // passado
-    const GOAL_LINE_CURRENT = 20;  // meta atual
-    const GOAL_LINE_TARGET = 30;   // foco futuro
-
-    // Dados iniciais (seed) – 10/11/2025 a 19/11/2025
-    const defaultSeedEntries = [
-      { date: "2025-11-10", qty: 10 },
-      { date: "2025-11-11", qty: 11 },
-      { date: "2025-11-12", qty: 11 },
-      { date: "2025-11-13", qty: 10 },
-      { date: "2025-11-14", qty: 18 },
-      { date: "2025-11-15", qty: 16 },
-      { date: "2025-11-16", qty: 10 },
-      { date: "2025-11-17", qty: 20 },
-      { date: "2025-11-18", qty: 21 },
-      { date: "2025-11-19", qty: 22 }
-    ];
+    const GOAL_LINE_PAST = 10;
+    const GOAL_LINE_CURRENT = 20;
+    const GOAL_LINE_TARGET = 30;
 
     let state = { entries: [] };
     const dayNames = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
@@ -765,10 +733,8 @@
 
     let weekChart, weeksHistoryChart, periodChart;
 
-    // --------- Helpers de data (robustos para iPhone/Safari) ---------
-
+    // === HELPERS DE DATA ===
     function parseISODate(dateStr) {
-      // "2025-11-19" -> Date(ano, mêsIndex, dia)
       const [y, m, d] = dateStr.split("-").map(Number);
       return new Date(y, m - 1, d);
     }
@@ -778,7 +744,6 @@
     }
 
     function toDateStr(d) {
-      // garante "YYYY-MM-DD" sem fuso
       const year = d.getFullYear();
       const month = ("0" + (d.getMonth() + 1)).slice(-2);
       const day = ("0" + d.getDate()).slice(-2);
@@ -792,7 +757,7 @@
 
     function getWeekStart(dateObj) {
       const d = cloneDate(dateObj);
-      const day = d.getDay(); // 0 = domingo
+      const day = d.getDay();
       d.setDate(d.getDate() - day);
       return d;
     }
@@ -804,30 +769,35 @@
       return new Date();
     }
 
-    // --------- Carregar / salvar estado ---------
-
-    function loadState() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && Array.isArray(parsed.entries)) {
-            state = parsed;
-            return;
-          }
-        }
-      } catch(e) {
-        console.warn("Erro ao carregar estado, usando seed padrão.", e);
+    // === API: CARREGAR / SALVAR NA PLANILHA ===
+    async function fetchEntriesFromApi() {
+      const url = API_URL + "?t=" + Date.now(); // cache-buster
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Erro ao buscar dados");
+      const data = await res.json();
+      if (!data.entries || !Array.isArray(data.entries)) {
+        state.entries = [];
+        return;
       }
-      state = { entries: defaultSeedEntries.slice() };
+      state.entries = data.entries.map(e => ({
+        date: e.date,
+        qty: Number(e.qty) || 0
+      }));
     }
 
-    function saveState() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    async function saveEntriesToApi() {
+      const payload = { entries: state.entries };
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        throw new Error("Erro ao salvar dados");
+      }
     }
 
-    // --------- Inicialização ---------
-
+    // === INICIALIZAÇÃO ===
     function initDateSelectors() {
       const now = new Date();
       const currentYear = now.getFullYear();
@@ -876,8 +846,7 @@
         .sort((a, b) => parseISODate(a.date) - parseISODate(b.date));
     }
 
-    // --------- Renderizações ---------
-
+    // === RENDERIZAÇÕES ===
     function renderDailyGoal() {
       const focusDate = getFocusDate();
       const focusStr = toDateStr(focusDate);
@@ -1046,7 +1015,7 @@
             {
               type: "line",
               data: values.map(() => GOAL_LINE_PAST),
-              borderColor: "rgba(250,204,21,.95)", // amarelo
+              borderColor: "rgba(250,204,21,.95)",
               borderWidth: 1,
               borderDash: [4,3],
               pointRadius: 0,
@@ -1055,7 +1024,7 @@
             {
               type: "line",
               data: values.map(() => GOAL_LINE_CURRENT),
-              borderColor: "rgba(34,197,94,.95)", // verde
+              borderColor: "rgba(34,197,94,.95)",
               borderWidth: 1,
               borderDash: [4,3],
               pointRadius: 0,
@@ -1064,7 +1033,7 @@
             {
               type: "line",
               data: values.map(() => GOAL_LINE_TARGET),
-              borderColor: "rgba(59,130,246,.95)", // azul
+              borderColor: "rgba(59,130,246,.95)",
               borderWidth: 1,
               borderDash: [4,3],
               pointRadius: 0,
@@ -1212,7 +1181,7 @@
             },
             {
               data: goal10,
-              borderColor: "rgba(250,204,21,.95)", // amarelo
+              borderColor: "rgba(250,204,21,.95)",
               borderWidth: 1,
               borderDash: [4,3],
               pointRadius: 0,
@@ -1220,7 +1189,7 @@
             },
             {
               data: goal20,
-              borderColor: "rgba(34,197,94,.95)", // verde
+              borderColor: "rgba(34,197,94,.95)",
               borderWidth: 1,
               borderDash: [4,3],
               pointRadius: 0,
@@ -1228,7 +1197,7 @@
             },
             {
               data: goal30,
-              borderColor: "rgba(59,130,246,.95)", // azul
+              borderColor: "rgba(59,130,246,.95)",
               borderWidth: 1,
               borderDash: [4,3],
               pointRadius: 0,
@@ -1264,8 +1233,7 @@
       renderDailyGoal();
     }
 
-    // --------- Eventos / Ações ---------
-
+    // === EVENTOS ===
     downloadBackup.addEventListener("click", () => {
       const blob = new Blob([JSON.stringify(state)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -1278,18 +1246,27 @@
       URL.revokeObjectURL(url);
     });
 
-    uploadBackup.addEventListener("change", (e) => {
+    uploadBackup.addEventListener("change", async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = (ev) => {
+      reader.onload = async (ev) => {
         try {
           const data = JSON.parse(ev.target.result);
           if (data && Array.isArray(data.entries)) {
-            state = data;
-            saveState();
+            state = {
+              entries: data.entries.map(e => ({
+                date: e.date,
+                qty: Number(e.qty) || 0
+              }))
+            };
             renderAll();
-            alert("Backup restaurado com sucesso!");
+            try {
+              await saveEntriesToApi();
+              alert("Backup restaurado e salvo na nuvem com sucesso!");
+            } catch {
+              alert("Backup restaurado localmente, mas houve erro ao salvar na nuvem.");
+            }
           } else {
             alert("Arquivo inválido.");
           }
@@ -1300,7 +1277,7 @@
       reader.readAsText(file);
     });
 
-    addBtn.addEventListener("click", () => {
+    addBtn.addEventListener("click", async () => {
       const date = leadDate.value;
       const qty = parseInt(leadQty.value, 10);
       if (!date || isNaN(qty)) {
@@ -1310,9 +1287,17 @@
       const idx = state.entries.findIndex(e => e.date === date);
       if (idx >= 0) state.entries[idx].qty = qty;
       else state.entries.push({ date, qty });
-      saveState();
+      state.entries.sort((a, b) => parseISODate(a.date) - parseISODate(b.date));
+
       renderAll();
       leadQty.value = "";
+
+      try {
+        await saveEntriesToApi();
+      } catch (err) {
+        console.error(err);
+        alert("Houve um erro ao salvar na nuvem. Tente novamente em instantes.");
+      }
     });
 
     yearSelect.addEventListener("change", renderAll);
@@ -1329,10 +1314,20 @@
       renderAll();
     });
 
-    // --------- Boot ---------
-    loadState();
-    initDateSelectors();
-    renderAll();
+    // === BOOT ===
+    (async function init() {
+      initDateSelectors();
+      summaryText.textContent = "Carregando dados da nuvem...";
+      try {
+        await fetchEntriesFromApi();
+        summaryText.textContent = "Dados carregados da planilha BaseLeads.";
+      } catch (err) {
+        console.error(err);
+        summaryText.textContent = "Erro ao carregar dados da nuvem. Painel vazio até conseguir conectar.";
+        state.entries = [];
+      }
+      renderAll();
+    })();
   </script>
 </body>
 </html>
