@@ -791,7 +791,7 @@
 
     // === API: CARREGAR / SALVAR NA PLANILHA ===
     async function fetchEntriesFromApi() {
-      const url = API_URL + "?t=" + Date.now();
+      const url = URL_DA_API + "?t=" + Date.now();
       const res = await fetch(url);
       if (!res.ok) throw new Error("Erro ao buscar dados");
       const data = await res.json();
@@ -805,7 +805,7 @@
 
     async function saveEntriesToApi() {
       const payload = { entries: state.entries };
-      const res = await fetch(API_URL, {
+      const res = await fetch(URL_DA_API, {
         method: "POST",
         // text/plain evita preflight CORS com Apps Script
         headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -1367,6 +1367,7 @@
   </script>
 </body>
 </html>
+
 
 
 
