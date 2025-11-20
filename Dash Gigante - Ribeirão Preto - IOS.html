@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard de Leads</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0f1116;
+      --card: #161920;
+      --primary: #E60000;
+      --primary-soft: rgba(230,0,0,.12);
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --radius: 16px;
+      --shadow-soft: 0 18px 40px rgba(0,0,0,.55);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #1a1e28, #0f1116 50%, #0b0c10 90%);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      padding: 12px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    @media (min-width: 880px) {
+      .app {
+        max-width: 960px;
+      }
+    }
+
+    header {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .logo-circle {
+      width: 56px;
+      height: 56px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 25% 20%, #ff9580, #E60000 55%, #7b0000 100%);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 1.4rem;
+      box-shadow: 0 0 25px rgba(230,0,0,0.4);
+      letter-spacing: .02em;
+    }
+
+    h1 {
+      font-size: 1.05rem;
+      margin: 0;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: .7rem;
+    }
+
+    .header-sub {
+      margin-top: 2px;
+      font-size: .66rem;
+      color: rgba(209,213,219,.8);
+    }
+
+    /* CARD META DIÁRIA */
+    .daily-card {
+      background:
+        radial-gradient(circle at top left, rgba(56,189,248,.18), transparent 55%),
+        linear-gradient(150deg, rgba(15,23,42,0.98), rgba(15,23,42,0.94));
+      border: 1px solid rgba(148,163,184,0.35);
+      border-radius: 18px;
+      padding: 12px 14px 10px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .daily-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .daily-title {
+      font-size: .72rem;
+      color: #fff;
+      margin-bottom: 4px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      opacity: .95;
+    }
+
+    .daily-text {
+      font-size: .64rem;
+      color: rgba(243,244,246,.86);
+    }
+
+    .daily-badge {
+      background: rgba(15,118,110,.22);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: .6rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(45,212,191,.65);
+      color: #ccfbf1;
+    }
+
+    .daily-badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 6px rgba(34,197,94,.9);
+    }
+
+    .daily-progress {
+      margin-top: 8px;
+    }
+
+    .daily-progress-label {
+      font-size: .55rem;
+      display: flex;
+      justify-content: space-between;
+      color: rgba(243,244,246,.7);
+    }
+
+    .daily-progress-bar {
+      width: 100%;
+      height: 7px;
+      background: rgba(15,23,42,.9);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 4px;
+      position: relative;
+    }
+
+    .daily-progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      transition: width .35s ease-out, background .35s ease-out;
+    }
+
+    /* CARD RESUMO / META MENSAL (no final) */
+    .summary-card {
+      background:
+        radial-gradient(circle at top left, rgba(230,0,0,.18), transparent 55%),
+        linear-gradient(150deg, rgba(15,17,22,0.98), rgba(15,17,22,0.94));
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 18px;
+      padding: 12px 14px 10px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .summary-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .summary-title {
+      font-size: .72rem;
+      color: #fff;
+      margin-bottom: 4px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      opacity: .95;
+    }
+
+    .summary-text {
+      font-size: .64rem;
+      color: rgba(243,244,246,.78);
+    }
+
+    .meta-badge {
+      background: rgba(8,47,73,.18);
+      border: 1px solid rgba(148,163,184,.35);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: .58rem;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .meta-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 6px rgba(34,197,94,.8);
+    }
+
+    .progress-wrapper {
+      margin-top: 8px;
+    }
+
+    .progress-label {
+      font-size: .55rem;
+      display: flex;
+      justify-content: space-between;
+      color: rgba(243,244,246,.6);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,.05);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 4px;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #E60000, #ff6d3f);
+      width: 0%;
+      transition: width .35s ease-out;
+    }
+
+    .progress-glow {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at 0 50%, rgba(255,255,255,.2), transparent 60%);
+      opacity: .35;
+      mix-blend-mode: screen;
+    }
+
+    /* CARDS GENÉRICOS */
+    .card {
+      background:
+        radial-gradient(circle at top left, rgba(230,0,0,.08), rgba(22,25,32,1));
+      border: 1px solid rgba(255,255,255,.035);
+      border-radius: var(--radius);
+      padding: 12px 12px 10px;
+      margin-bottom: 12px;
+      box-shadow: 0 14px 30px rgba(0,0,0,.55);
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 40px rgba(0,0,0,.7);
+      border-color: rgba(248,113,113,.25);
+    }
+
+    .card-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .inline-selects {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    input,
+    select,
+    button {
+      font-size: .7rem;
+      font-family: inherit;
+    }
+
+    input,
+    select {
+      background: #111319;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 6px 8px;
+      color: var(--text);
+      transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+
+    input::placeholder {
+      color: rgba(148,163,184,.8);
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: rgba(248,113,113,.7);
+      box-shadow: 0 0 0 1px rgba(248,113,113,.45);
+      background: #0e1016;
+    }
+
+    button {
+      background: linear-gradient(130deg, #E60000, #ff6d3f);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      padding: 7px 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      /* sombra removida conforme pedido */
+      transition: transform .14s ease, filter .14s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.04);
+    }
+
+    button:active {
+      transform: translateY(0);
+      filter: brightness(.97);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    #leadDate {
+      flex: 1;
+      min-width: 0;
+    }
+
+    #leadQty {
+      width: 92px;
+    }
+
+    .input-hint {
+      font-size: .6rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+      display: none;
+    }
+
+    /* KPIs */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .kpi {
+      background: rgba(17,19,25,.7);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 12px;
+      padding: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(248,113,113,.22), transparent 60%);
+      opacity: .6;
+      pointer-events: none;
+    }
+
+    .kpi .label {
+      font-size: .58rem;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+      letter-spacing: .04em;
+    }
+
+    .kpi .value {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .kpi small {
+      position: relative;
+      z-index: 1;
+    }
+
+    .week-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+
+    .day-box {
+      background: #111319;
+      border-radius: 10px;
+      padding: 5px 4px;
+      text-align: center;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,.05);
+      transition: background .16s ease, transform .12s ease, border-color .16s ease, box-shadow .16s ease;
+    }
+
+    .day-box span {
+      display: block;
+      font-size: .54rem;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+
+    .day-box strong {
+      font-size: .7rem;
+    }
+
+    .day-box:hover {
+      background: #151822;
+      transform: translateY(-1px);
+      box-shadow: 0 10px 18px rgba(0,0,0,.7);
+    }
+
+    .day-box.focused {
+      border-color: rgba(59,130,246,.9);
+      background: linear-gradient(145deg, rgba(15,23,42,1), rgba(30,64,175,.9));
+      box-shadow: 0 0 0 1px rgba(59,130,246,.8), 0 16px 30px rgba(15,23,42,.9);
+    }
+
+    .day-box.focused span {
+      color: rgba(191,219,254,1);
+    }
+
+    .day-box.focused strong {
+      color: #eff6ff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .63rem;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 4px 2px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+
+    th {
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: .58rem;
+      letter-spacing: .04em;
+    }
+
+    .badge-day {
+      background: var(--primary-soft);
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: .55rem;
+    }
+
+    .backup-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .backup-btn {
+      background: #1f2330;
+      border: 1px solid rgba(255,255,255,.06);
+      padding: 5px 10px;
+      border-radius: 10px;
+      font-size: .6rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background .16s ease, border-color .16s ease, transform .12s ease;
+    }
+
+    .backup-btn:hover {
+      background: #262b38;
+      border-color: rgba(248,113,113,.4);
+      transform: translateY(-1px);
+    }
+
+    @media (min-width: 720px) {
+      .app {
+        max-width: 880px;
+      }
+
+      .cards-grid-lg {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .cards-grid-lg .card.full-span {
+        grid-column: 1 / -1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="logo-circle">G</div>
+      <div>
+        <h1>Dashboard de Leads</h1>
+        <div class="muted">Gigante Pneus • Ribeirão Preto</div>
+        <div class="header-sub" id="currentMonthLabel"></div>
+      </div>
+    </header>
+
+    <!-- META DIÁRIA -->
+    <div class="daily-card">
+      <div class="daily-top">
+        <div>
+          <div class="daily-title">Meta diária de leads</div>
+          <div class="daily-text" id="dailyGoalText">
+            Acompanhe o dia com calma: constância é mais importante que picos isolados.
+          </div>
+        </div>
+        <div class="daily-badge">
+          <span class="daily-badge-dot"></span>
+          <span>Objetivo: 20 leads/dia</span>
+        </div>
+      </div>
+      <div class="daily-progress">
+        <div class="daily-progress-label">
+          <span id="dailyProgressLeft">0% da meta</span>
+          <span id="dailyProgressRight">0 / 20</span>
+        </div>
+        <div class="daily-progress-bar">
+          <div class="daily-progress-fill" id="dailyProgressFill"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cards-grid-lg">
+      <!-- LANÇAMENTO + BACKUP -->
+      <div class="card">
+        <div class="card-title">
+          <div class="inline-selects">
+            <select id="yearSelect"></select>
+            <select id="monthSelect"></select>
+          </div>
+          <div class="backup-row">
+            <button class="backup-btn" id="downloadBackup">⬇ Baixar backup</button>
+            <label class="backup-btn" for="uploadBackup" style="cursor:pointer;">⬆ Restaurar</label>
+            <input type="file" id="uploadBackup" accept="application/json" style="display:none;" />
+          </div>
+        </div>
+
+        <div class="input-row">
+          <input type="date" id="leadDate" />
+          <input type="number" id="leadQty" min="0" placeholder="Qtde" />
+          <button id="addBtn">Salvar</button>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi">
+            <div class="label">Leads do dia</div>
+            <div class="value" id="todayLeads">0</div>
+            <small id="todayLabel" class="muted"></small>
+          </div>
+          <div class="kpi">
+            <div class="label">Semana (dom-dom)</div>
+            <div class="value" id="weekLeads">0</div>
+            <small id="weekRange" class="muted"></small>
+          </div>
+          <div class="kpi">
+            <div class="label">Mês</div>
+            <div class="value" id="monthLeads">0</div>
+            <small id="monthLabel" class="muted"></small>
+          </div>
+        </div>
+
+        <div class="week-grid" id="weekGrid"></div>
+      </div>
+
+      <!-- GRÁFICO DA SEMANA -->
+      <div class="card">
+        <div class="card-title">
+          <h2 style="font-size:.8rem;margin:0;">Gráfico da semana</h2>
+          <small class="muted">Linhas marcando 10, 20 e 30 leads/dia</small>
+        </div>
+        <canvas id="weekChart" height="160"></canvas>
+      </div>
+
+      <!-- HISTÓRICO SEMANAS -->
+      <div class="card full-span">
+        <div class="card-title">
+          <h2 style="font-size:.8rem;margin:0;">Histórico das últimas semanas</h2>
+          <small class="muted">Semana atual + 4 anteriores</small>
+        </div>
+        <canvas id="weeksHistoryChart" height="160"></canvas>
+      </div>
+    </div>
+
+    <!-- ANÁLISE POR PERÍODO -->
+    <div class="card">
+      <div class="card-title">
+        <h2 style="font-size:.8rem;margin:0;">Analisar por período</h2>
+        <small class="muted">Padrão: 01 do mês vigente → hoje</small>
+      </div>
+      <div class="input-row">
+        <input type="date" id="periodStart" />
+        <input type="date" id="periodEnd" />
+        <button id="analyzeBtn">Analisar</button>
+      </div>
+      <div class="kpi-grid" style="grid-template-columns: repeat(2,1fr);">
+        <div class="kpi">
+          <div class="label">Total período</div>
+          <div class="value" id="periodTotal">0</div>
+          <small id="periodRangeLabel" class="muted"></small>
+        </div>
+        <div class="kpi">
+          <div class="label">Média/dia</div>
+          <div class="value" id="periodAvg">0</div>
+          <small id="periodDays" class="muted"></small>
+        </div>
+      </div>
+      <canvas id="periodChart" height="140"></canvas>
+    </div>
+
+    <!-- TABELA -->
+    <div class="card">
+      <div class="card-title">
+        <h2 style="font-size:.8rem;margin:0;">Lançamentos do mês</h2>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Dia</th>
+            <th>Leads</th>
+          </tr>
+        </thead>
+        <tbody id="entriesTable"></tbody>
+      </table>
+      <div id="monthlyResume" class="muted" style="margin-top:6px;font-size:.62rem;"></div>
+    </div>
+
+    <!-- RESUMO DO MÊS (FINAL) -->
+    <div class="summary-card">
+      <div class="summary-top">
+        <div>
+          <div class="summary-title">Resumo do mês</div>
+          <div class="summary-text" id="summaryText">Sem dados cadastrados.</div>
+        </div>
+        <div class="meta-badge">
+          <span class="meta-dot"></span>
+          <span>Meta: 600 leads</span>
+        </div>
+      </div>
+      <div class="progress-wrapper">
+        <div class="progress-label">
+          <span id="progressLabelLeft">0% da meta</span>
+          <span id="progressLabelRight">0 / 600</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+          <div class="progress-glow"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "dashLeads_mobile_v1";
+    const META_MENSAL = 600;
+    const DAILY_GOAL = 20; // meta atual
+
+    // Linhas de meta para os gráficos
+    const GOAL_LINE_PAST = 10;     // passado
+    const GOAL_LINE_CURRENT = 20;  // meta atual
+    const GOAL_LINE_TARGET = 30;   // foco futuro
+
+    // Dados iniciais (seed) – 10/11/2025 a 19/11/2025
+    const defaultSeedEntries = [
+      { date: "2025-11-10", qty: 10 },
+      { date: "2025-11-11", qty: 11 },
+      { date: "2025-11-12", qty: 11 },
+      { date: "2025-11-13", qty: 10 },
+      { date: "2025-11-14", qty: 18 },
+      { date: "2025-11-15", qty: 16 },
+      { date: "2025-11-16", qty: 10 },
+      { date: "2025-11-17", qty: 20 },
+      { date: "2025-11-18", qty: 21 },
+      { date: "2025-11-19", qty: 22 }
+    ];
+
+    let state = { entries: [] };
+    const dayNames = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+
+    const yearSelect = document.getElementById("yearSelect");
+    const monthSelect = document.getElementById("monthSelect");
+    const leadDate = document.getElementById("leadDate");
+    const leadQty = document.getElementById("leadQty");
+    const addBtn = document.getElementById("addBtn");
+
+    const todayLeadsEl = document.getElementById("todayLeads");
+    const todayLabelEl = document.getElementById("todayLabel");
+    const weekLeadsEl = document.getElementById("weekLeads");
+    const weekRangeEl = document.getElementById("weekRange");
+    const monthLeadsEl = document.getElementById("monthLeads");
+    const monthLabelEl = document.getElementById("monthLabel");
+    const currentMonthLabelEl = document.getElementById("currentMonthLabel");
+
+    const entriesTableBody = document.getElementById("entriesTable");
+    const weekGrid = document.getElementById("weekGrid");
+    const monthlyResume = document.getElementById("monthlyResume");
+
+    const periodStart = document.getElementById("periodStart");
+    const periodEnd = document.getElementById("periodEnd");
+    const analyzeBtn = document.getElementById("analyzeBtn");
+    const periodTotalEl = document.getElementById("periodTotal");
+    const periodAvgEl = document.getElementById("periodAvg");
+    const periodRangeLabelEl = document.getElementById("periodRangeLabel");
+    const periodDaysEl = document.getElementById("periodDays");
+
+    const summaryText = document.getElementById("summaryText");
+    const progressFill = document.getElementById("progressFill");
+    const progressLabelLeft = document.getElementById("progressLabelLeft");
+    const progressLabelRight = document.getElementById("progressLabelRight");
+
+    const downloadBackup = document.getElementById("downloadBackup");
+    const uploadBackup = document.getElementById("uploadBackup");
+
+    const dailyGoalTextEl = document.getElementById("dailyGoalText");
+    const dailyProgressFill = document.getElementById("dailyProgressFill");
+    const dailyProgressLeft = document.getElementById("dailyProgressLeft");
+    const dailyProgressRight = document.getElementById("dailyProgressRight");
+
+    let weekChart, weeksHistoryChart, periodChart;
+
+    // --------- Helpers de data (robustos para iPhone/Safari) ---------
+
+    function parseISODate(dateStr) {
+      // "2025-11-19" -> Date(ano, mêsIndex, dia)
+      const [y, m, d] = dateStr.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function cloneDate(d) {
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+
+    function toDateStr(d) {
+      // garante "YYYY-MM-DD" sem fuso
+      const year = d.getFullYear();
+      const month = ("0" + (d.getMonth() + 1)).slice(-2);
+      const day = ("0" + d.getDate()).slice(-2);
+      return `${year}-${month}-${day}`;
+    }
+
+    function formatBR(dateStr) {
+      const [y, m, d] = dateStr.split("-");
+      return `${d}/${m}/${y}`;
+    }
+
+    function getWeekStart(dateObj) {
+      const d = cloneDate(dateObj);
+      const day = d.getDay(); // 0 = domingo
+      d.setDate(d.getDate() - day);
+      return d;
+    }
+
+    function getFocusDate() {
+      if (leadDate.value) {
+        return parseISODate(leadDate.value);
+      }
+      return new Date();
+    }
+
+    // --------- Carregar / salvar estado ---------
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.entries)) {
+            state = parsed;
+            return;
+          }
+        }
+      } catch(e) {
+        console.warn("Erro ao carregar estado, usando seed padrão.", e);
+      }
+      state = { entries: defaultSeedEntries.slice() };
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    // --------- Inicialização ---------
+
+    function initDateSelectors() {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonthIndex = now.getMonth();
+      const months = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
+      for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+        const opt = document.createElement("option");
+        opt.value = y;
+        opt.textContent = y;
+        if (y === currentYear) opt.selected = true;
+        yearSelect.appendChild(opt);
+      }
+
+      months.forEach((m, idx) => {
+        const opt = document.createElement("option");
+        opt.value = idx;
+        opt.textContent = m;
+        if (idx === currentMonthIndex) opt.selected = true;
+        monthSelect.appendChild(opt);
+      });
+
+      leadDate.value = toDateStr(now);
+
+      const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      periodStart.value = toDateStr(startMonth);
+      periodEnd.value = toDateStr(now);
+
+      currentMonthLabelEl.textContent =
+        `Mês atual: ${("0" + (currentMonthIndex + 1)).slice(-2)}/${currentYear}`;
+    }
+
+    function getSelectedYearMonth() {
+      return {
+        year: parseInt(yearSelect.value, 10),
+        month: parseInt(monthSelect.value, 10)
+      };
+    }
+
+    function getEntriesForMonth(year, month) {
+      return state.entries
+        .filter(e => {
+          const d = parseISODate(e.date);
+          return d.getFullYear() === year && d.getMonth() === month;
+        })
+        .sort((a, b) => parseISODate(a.date) - parseISODate(b.date));
+    }
+
+    // --------- Renderizações ---------
+
+    function renderDailyGoal() {
+      const focusDate = getFocusDate();
+      const focusStr = toDateStr(focusDate);
+      const dayEntry = state.entries.find(e => e.date === focusStr);
+      const qty = dayEntry ? dayEntry.qty : 0;
+
+      const pct = DAILY_GOAL > 0 ? (qty / DAILY_GOAL) * 100 : 0;
+      const pctClamped = Math.max(0, Math.min(100, pct));
+
+      dailyProgressFill.style.width = pctClamped.toFixed(0) + "%";
+      dailyProgressLeft.textContent = `${Math.max(0, pct).toFixed(0)}% da meta`;
+      dailyProgressRight.textContent = `${qty} / ${DAILY_GOAL}`;
+
+      let pctForColor = Math.max(0, Math.min(120, pct));
+      const hueStart = 210 - (70 * (pctForColor / 120));
+      const hueEnd = hueStart - 20;
+      dailyProgressFill.style.background =
+        `linear-gradient(90deg, hsl(${hueStart},80%,55%), hsl(${hueEnd},80%,50%))`;
+
+      if (qty === 0) {
+        dailyGoalTextEl.textContent =
+          "Dia tranquilo por enquanto. A meta é chegar em 20 leads com constância, sem pressão.";
+      } else if (pct < 50) {
+        const falta = Math.max(0, DAILY_GOAL - qty);
+        dailyGoalTextEl.textContent =
+          `Você já registrou ${qty} lead(s) hoje. Caminho certo: pequenos passos. Faltam ${falta} para a meta.`;
+      } else if (pct < 100) {
+        const falta = Math.max(0, DAILY_GOAL - qty);
+        dailyGoalTextEl.textContent =
+          `Muito bom! ${qty} leads hoje. Só mais ${falta} para fechar a meta com tranquilidade.`;
+      } else {
+        dailyGoalTextEl.textContent =
+          "Meta diária batida! 🎉 Agora cada lead extra é bônus que deixa o mês ainda mais confortável.";
+      }
+    }
+
+    function renderTable() {
+      const { year, month } = getSelectedYearMonth();
+      const entries = getEntriesForMonth(year, month);
+      entriesTableBody.innerHTML = "";
+      entries.forEach(e => {
+        const d = parseISODate(e.date);
+        entriesTableBody.innerHTML += `
+          <tr>
+            <td>${formatBR(e.date)}</td>
+            <td><span class="badge-day">${dayNames[d.getDay()]}</span></td>
+            <td>${e.qty}</td>
+          </tr>`;
+      });
+    }
+
+    function renderSummary() {
+      const { year, month } = getSelectedYearMonth();
+      const monthEntries = getEntriesForMonth(year, month);
+      const monthTotal = monthEntries.reduce((s, e) => s + e.qty, 0);
+
+      let prevYear = year, prevMonth = month - 1;
+      if (prevMonth < 0) {
+        prevMonth = 11;
+        prevYear = year - 1;
+      }
+      const prevEntries = getEntriesForMonth(prevYear, prevMonth);
+      const prevTotal = prevEntries.reduce((s, e) => s + e.qty, 0);
+
+      if (monthEntries.length === 0) {
+        summaryText.textContent = "Sem dados cadastrados para este mês.";
+      } else if (prevTotal > 0) {
+        const diff = monthTotal - prevTotal;
+        const pct = ((diff / prevTotal) * 100).toFixed(1);
+        summaryText.textContent = diff > 0
+          ? `🚀 ${monthTotal} leads, +${pct}% vs mês anterior.`
+          : (diff < 0
+              ? `📉 ${monthTotal} leads, ${pct}% vs mês anterior.`
+              : `🟰 ${monthTotal} leads, igual ao mês anterior.`);
+      } else {
+        summaryText.textContent = `📦 ${monthTotal} leads neste mês.`;
+      }
+
+      const pctMeta = Math.min(100, (monthTotal / META_MENSAL) * 100);
+      progressFill.style.width = pctMeta.toFixed(0) + "%";
+      progressLabelLeft.textContent = pctMeta.toFixed(0) + "% da meta";
+      progressLabelRight.textContent = `${monthTotal} / ${META_MENSAL}`;
+    }
+
+    function renderKpis() {
+      const focusDate = getFocusDate();
+      const focusStr = toDateStr(focusDate);
+      const { year, month } = getSelectedYearMonth();
+
+      const dayEntry = state.entries.find(e => e.date === focusStr);
+      todayLeadsEl.textContent = dayEntry ? dayEntry.qty : 0;
+      todayLabelEl.textContent = formatBR(focusStr);
+
+      const weekStart = getWeekStart(focusDate);
+      const weekEnd = cloneDate(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      let weekTotal = 0;
+      for (let i = 0; i < 7; i++) {
+        const d = cloneDate(weekStart);
+        d.setDate(weekStart.getDate() + i);
+        const found = state.entries.find(e => e.date === toDateStr(d));
+        weekTotal += found ? found.qty : 0;
+      }
+      weekLeadsEl.textContent = weekTotal;
+      weekRangeEl.textContent = `${formatBR(toDateStr(weekStart))} a ${formatBR(toDateStr(weekEnd))}`;
+
+      const monthEntries = getEntriesForMonth(year, month);
+      const monthTotal = monthEntries.reduce((s, e) => s + e.qty, 0);
+      monthLeadsEl.textContent = monthTotal;
+      monthLabelEl.textContent = `${("0" + (month + 1)).slice(-2)}/${year}`;
+    }
+
+    function renderWeekGrid() {
+      const focusDate = getFocusDate();
+      const focusStr = toDateStr(focusDate);
+      const weekStart = getWeekStart(focusDate);
+      weekGrid.innerHTML = "";
+
+      for (let i = 0; i < 7; i++) {
+        const d = cloneDate(weekStart);
+        d.setDate(weekStart.getDate() + i);
+        const ds = toDateStr(d);
+        const found = state.entries.find(e => e.date === ds);
+        const qty = found ? found.qty : 0;
+
+        const div = document.createElement("div");
+        div.className = "day-box";
+        if (ds === focusStr) div.classList.add("focused");
+        div.dataset.date = ds;
+        div.innerHTML = `<span>${dayNames[d.getDay()]}</span><strong>${qty}</strong>`;
+        weekGrid.appendChild(div);
+      }
+    }
+
+    function renderWeekChart() {
+      const focusDate = getFocusDate();
+      const weekStart = getWeekStart(focusDate);
+      const values = [];
+      const labels = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+      const focusDay = focusDate.getDay();
+
+      for (let i = 0; i < 7; i++) {
+        const d = cloneDate(weekStart);
+        d.setDate(weekStart.getDate() + i);
+        const found = state.entries.find(e => e.date === toDateStr(d));
+        values.push(found ? found.qty : 0);
+      }
+
+      const colors = values.map((_, idx) =>
+        idx === focusDay ? "rgba(59,130,246,.9)" : "rgba(230,0,0,.75)"
+      );
+
+      if (weekChart) weekChart.destroy();
+      const ctx = document.getElementById("weekChart").getContext("2d");
+      weekChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            {
+              data: values,
+              backgroundColor: colors,
+              borderRadius: 6,
+              borderSkipped: false
+            },
+            {
+              type: "line",
+              data: values.map(() => GOAL_LINE_PAST),
+              borderColor: "rgba(250,204,21,.95)", // amarelo
+              borderWidth: 1,
+              borderDash: [4,3],
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              type: "line",
+              data: values.map(() => GOAL_LINE_CURRENT),
+              borderColor: "rgba(34,197,94,.95)", // verde
+              borderWidth: 1,
+              borderDash: [4,3],
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              type: "line",
+              data: values.map(() => GOAL_LINE_TARGET),
+              borderColor: "rgba(59,130,246,.95)", // azul
+              borderWidth: 1,
+              borderDash: [4,3],
+              pointRadius: 0,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: "#d1d5db", font: { size: 9 } }
+            },
+            y: {
+              grid: { color: "rgba(255,255,255,.03)" },
+              ticks: { color: "#9ca3af", font: { size: 9 } }
+            }
+          }
+        }
+      });
+    }
+
+    function renderWeeksHistoryChart() {
+      const focusDate = getFocusDate();
+      const weeks = [];
+      let currentWeekStart = getWeekStart(focusDate);
+
+      for (let i = 0; i < 5; i++) {
+        const s = cloneDate(currentWeekStart);
+        const e = cloneDate(s);
+        e.setDate(s.getDate() + 6);
+        let total = 0;
+        for (let d = cloneDate(s); d <= e; d.setDate(d.getDate() + 1)) {
+          const found = state.entries.find(x => x.date === toDateStr(d));
+          if (found) total += found.qty;
+        }
+        weeks.push({
+          label: `${formatBR(toDateStr(s))} a ${formatBR(toDateStr(e))}`,
+          total
+        });
+        currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+      }
+
+      weeks.reverse();
+      if (weeksHistoryChart) weeksHistoryChart.destroy();
+      const ctx = document.getElementById("weeksHistoryChart").getContext("2d");
+      weeksHistoryChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: weeks.map(w => w.label),
+          datasets: [{
+            data: weeks.map(w => w.total),
+            backgroundColor: "rgba(230,0,0,.55)",
+            borderRadius: 6,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: "#d1d5db", font: { size: 8 } }
+            },
+            y: {
+              grid: { color: "rgba(255,255,255,.03)" },
+              ticks: { color: "#9ca3af", font: { size: 9 } }
+            }
+          }
+        }
+      });
+    }
+
+    function renderMonthlyResume() {
+      const { year, month } = getSelectedYearMonth();
+      const entries = getEntriesForMonth(year, month);
+      if (!entries.length) {
+        monthlyResume.textContent = "Nenhum lançamento para este mês.";
+        return;
+      }
+      const total = entries.reduce((s, e) => s + e.qty, 0);
+      const media = (total / entries.length).toFixed(1);
+      const melhorDia = entries.reduce(
+        (best, cur) => (cur.qty > best.qty ? cur : best),
+        entries[0]
+      );
+      monthlyResume.innerHTML = `
+        Total no mês: <strong>${total}</strong><br>
+        Média (dias lançados): <strong>${media}</strong><br>
+        Melhor dia: <strong>${formatBR(melhorDia.date)} (${melhorDia.qty} leads)</strong>`;
+    }
+
+    function analyzePeriod() {
+      const start = periodStart.value;
+      const end = periodEnd.value;
+      if (!start || !end) return;
+
+      const startDate = parseISODate(start);
+      const endDate = parseISODate(end);
+      const filtered = state.entries
+        .filter(e => {
+          const d = parseISODate(e.date);
+          return d >= startDate && d <= endDate;
+        })
+        .sort((a, b) => parseISODate(a.date) - parseISODate(b.date));
+
+      const total = filtered.reduce((s, e) => s + e.qty, 0);
+      periodTotalEl.textContent = total;
+      periodRangeLabelEl.textContent = `${formatBR(start)} a ${formatBR(end)}`;
+
+      const diffMs = endDate - startDate;
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+      const avg = diffDays > 0 ? (total / diffDays).toFixed(1) : total;
+      periodAvgEl.textContent = isNaN(avg) ? 0 : avg;
+      periodDaysEl.textContent = `${diffDays} dia(s)`;
+
+      const labels = [];
+      const data = [];
+      for (let d = cloneDate(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const ds = toDateStr(d);
+        labels.push(formatBR(ds));
+        const found = filtered.find(e => e.date === ds);
+        data.push(found ? found.qty : 0);
+      }
+
+      const goal10 = labels.map(() => GOAL_LINE_PAST);
+      const goal20 = labels.map(() => GOAL_LINE_CURRENT);
+      const goal30 = labels.map(() => GOAL_LINE_TARGET);
+
+      if (periodChart) periodChart.destroy();
+      const ctx = document.getElementById("periodChart").getContext("2d");
+      periodChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              data,
+              borderColor: "rgba(230,0,0,.85)",
+              backgroundColor: "rgba(230,0,0,.25)",
+              tension: .3,
+              fill: true,
+              pointRadius: 2
+            },
+            {
+              data: goal10,
+              borderColor: "rgba(250,204,21,.95)", // amarelo
+              borderWidth: 1,
+              borderDash: [4,3],
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              data: goal20,
+              borderColor: "rgba(34,197,94,.95)", // verde
+              borderWidth: 1,
+              borderDash: [4,3],
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              data: goal30,
+              borderColor: "rgba(59,130,246,.95)", // azul
+              borderWidth: 1,
+              borderDash: [4,3],
+              pointRadius: 0,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              ticks: { color: "#d1d5db", font: { size: 8 } },
+              grid: { display: false }
+            },
+            y: {
+              ticks: { color: "#9ca3af", font: { size: 9 } },
+              grid: { color: "rgba(255,255,255,.03)" }
+            }
+          }
+        }
+      });
+    }
+
+    function renderAll() {
+      renderSummary();
+      renderTable();
+      renderKpis();
+      renderWeekGrid();
+      renderWeekChart();
+      renderWeeksHistoryChart();
+      renderMonthlyResume();
+      analyzePeriod();
+      renderDailyGoal();
+    }
+
+    // --------- Eventos / Ações ---------
+
+    downloadBackup.addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(state)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "leads-backup.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    uploadBackup.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (data && Array.isArray(data.entries)) {
+            state = data;
+            saveState();
+            renderAll();
+            alert("Backup restaurado com sucesso!");
+          } else {
+            alert("Arquivo inválido.");
+          }
+        } catch {
+          alert("Erro ao ler o backup.");
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    addBtn.addEventListener("click", () => {
+      const date = leadDate.value;
+      const qty = parseInt(leadQty.value, 10);
+      if (!date || isNaN(qty)) {
+        alert("Preencha data e quantidade.");
+        return;
+      }
+      const idx = state.entries.findIndex(e => e.date === date);
+      if (idx >= 0) state.entries[idx].qty = qty;
+      else state.entries.push({ date, qty });
+      saveState();
+      renderAll();
+      leadQty.value = "";
+    });
+
+    yearSelect.addEventListener("change", renderAll);
+    monthSelect.addEventListener("change", renderAll);
+    analyzeBtn.addEventListener("click", analyzePeriod);
+    leadDate.addEventListener("change", renderAll);
+
+    weekGrid.addEventListener("click", (e) => {
+      const box = e.target.closest(".day-box");
+      if (!box) return;
+      const ds = box.dataset.date;
+      if (!ds) return;
+      leadDate.value = ds;
+      renderAll();
+    });
+
+    // --------- Boot ---------
+    loadState();
+    initDateSelectors();
+    renderAll();
+  </script>
+</body>
+</html>
