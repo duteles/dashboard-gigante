@@ -17,9 +17,7 @@
       --shadow-soft: 0 18px 40px rgba(0,0,0,.55);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -36,9 +34,7 @@
     }
 
     @media (min-width: 880px) {
-      .app {
-        max-width: 960px;
-      }
+      .app { max-width: 960px; }
     }
 
     header {
@@ -496,9 +492,7 @@
     }
 
     @media (min-width: 720px) {
-      .app {
-        max-width: 880px;
-      }
+      .app { max-width: 880px; }
 
       .cards-grid-lg {
         display: grid;
@@ -684,10 +678,11 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbyycENZrT9qe9AJXFX67W3JbCmV2JDj-6WT-QyldkZOfz2GBSAWvzn0jZhDXMveVMMV/exec";
     const META_MENSAL = 600;
     const DAILY_GOAL = 20;
-
     const GOAL_LINE_PAST = 10;
     const GOAL_LINE_CURRENT = 20;
     const GOAL_LINE_TARGET = 30;
+
+    const LOCAL_KEY = "giganteLeadsState_v1";
 
     let state = { entries: [] };
     const dayNames = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
@@ -733,6 +728,33 @@
 
     let weekChart, weeksHistoryChart, periodChart;
 
+    // === HELPERS LOCALSTORAGE ===
+    function loadFromLocalStorage() {
+      try {
+        const raw = localStorage.getItem(LOCAL_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (data && Array.isArray(data.entries)) {
+          state = {
+            entries: data.entries.map(e => ({
+              date: e.date,
+              qty: Number(e.qty) || 0
+            }))
+          };
+        }
+      } catch (err) {
+        console.error("Erro ao carregar localStorage:", err);
+      }
+    }
+
+    function saveToLocalStorage() {
+      try {
+        localStorage.setItem(LOCAL_KEY, JSON.stringify(state));
+      } catch (err) {
+        console.error("Erro ao salvar no localStorage:", err);
+      }
+    }
+
     // === HELPERS DE DATA ===
     function parseISODate(dateStr) {
       const [y, m, d] = dateStr.split("-").map(Number);
@@ -763,33 +785,30 @@
     }
 
     function getFocusDate() {
-      if (leadDate.value) {
-        return parseISODate(leadDate.value);
-      }
+      if (leadDate.value) return parseISODate(leadDate.value);
       return new Date();
     }
 
     // === API: CARREGAR / SALVAR NA PLANILHA ===
     async function fetchEntriesFromApi() {
-      const url = API_URL + "?t=" + Date.now(); // cache-buster
+      const url = API_URL + "?t=" + Date.now();
       const res = await fetch(url);
       if (!res.ok) throw new Error("Erro ao buscar dados");
       const data = await res.json();
-      if (!data.entries || !Array.isArray(data.entries)) {
-        state.entries = [];
-        return;
-      }
+      if (!data.entries || !Array.isArray(data.entries)) return;
       state.entries = data.entries.map(e => ({
         date: e.date,
         qty: Number(e.qty) || 0
       }));
+      saveToLocalStorage();
     }
 
     async function saveEntriesToApi() {
       const payload = { entries: state.entries };
       const res = await fetch(API_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        // text/plain evita preflight CORS com Apps Script
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload)
       });
       if (!res.ok) {
@@ -1260,6 +1279,7 @@
                 qty: Number(e.qty) || 0
               }))
             };
+            saveToLocalStorage();
             renderAll();
             try {
               await saveEntriesToApi();
@@ -1289,6 +1309,7 @@
       else state.entries.push({ date, qty });
       state.entries.sort((a, b) => parseISODate(a.date) - parseISODate(b.date));
 
+      saveToLocalStorage();
       renderAll();
       leadQty.value = "";
 
@@ -1296,14 +1317,16 @@
         await saveEntriesToApi();
       } catch (err) {
         console.error(err);
-        alert("Houve um erro ao salvar na nuvem. Tente novamente em instantes.");
+        alert("Houve um erro ao salvar na nuvem. Os dados ficaram salvos neste navegador.");
       }
     });
 
     yearSelect.addEventListener("change", renderAll);
     monthSelect.addEventListener("change", renderAll);
     analyzeBtn.addEventListener("click", analyzePeriod);
-    leadDate.addEventListener("change", renderAll);
+    leadDate.addEventListener("change", () => {
+      renderAll();
+    });
 
     weekGrid.addEventListener("click", (e) => {
       const box = e.target.closest(".day-box");
@@ -1317,22 +1340,30 @@
     // === BOOT ===
     (async function init() {
       initDateSelectors();
-      summaryText.textContent = "Carregando dados da nuvem...";
-      try {
-        await fetchEntriesFromApi();
-        summaryText.textContent = "Dados carregados da planilha BaseLeads.";
-      } catch (err) {
-        console.error(err);
-        summaryText.textContent = "Erro ao carregar dados da nuvem. Painel vazio até conseguir conectar.";
-        state.entries = [];
+
+      // 1) Carrega o que tiver salvo no navegador
+      loadFromLocalStorage();
+      if (state.entries.length > 0) {
+        summaryText.textContent = "Dados carregados deste navegador. Conectando com a nuvem...";
+      } else {
+        summaryText.textContent = "Carregando dados da nuvem...";
       }
       renderAll();
+
+      // 2) Tenta sincronizar com a planilha (nuvem)
+      try {
+        await fetchEntriesFromApi();
+        summaryText.textContent = "Dados sincronizados com a planilha BaseLeads.";
+        renderAll();
+      } catch (err) {
+        console.error(err);
+        if (state.entries.length > 0) {
+          summaryText.textContent = "Não conectou na nuvem. Usando dados salvos neste navegador.";
+        } else {
+          summaryText.textContent = "Erro ao carregar dados da nuvem. Painel vazio até conseguir conectar.";
+        }
+      }
     })();
   </script>
 </body>
 </html>
-
-
-
-
-
