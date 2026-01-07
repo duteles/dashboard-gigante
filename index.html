@@ -44,13 +44,16 @@
       display:flex; align-items:center; gap:12px;
       margin-bottom: 10px;
     }
+
+    /* ✅ Logo VIP: vermelho + letra G */
     .logo{
       width: 50px; height: 50px; border-radius: 999px;
       display:grid; place-items:center; font-weight:900; letter-spacing:.02em;
-      background: radial-gradient(circle at 25% 20%, #8ab4ff, var(--blue) 55%, #0b2b66 100%);
-      box-shadow: 0 0 25px rgba(59,130,246,.30);
+      background: radial-gradient(circle at 25% 20%, #ff9580, var(--red) 55%, #7b0000 100%);
+      box-shadow: 0 0 25px rgba(230,0,0,.35);
       user-select:none;
     }
+
     .headtxt h1{ margin:0; font-size: 1.02rem; }
     .headtxt .sub{ margin-top:2px; font-size:.72rem; color:var(--muted); }
 
@@ -202,7 +205,7 @@
       border-radius: 16px;
       padding: 10px;
       text-align:center;
-      min-width:0;
+      min-width:0sin0;
     }
     .kpi .lab{
       font-size:.60rem;
@@ -379,7 +382,6 @@
       text-overflow: ellipsis;
     }
 
-    /* agora 4 caixas */
     .yearTotals{
       display:grid;
       grid-template-columns: repeat(4, 1fr);
@@ -457,10 +459,12 @@
   <div class="app">
 
     <header>
-      <div class="logo">Z</div>
+      <div class="logo">G</div>
       <div class="headtxt">
-        <h1>ZinapDash</h1>
-        <div class="sub">Gigante Pneus • Ribeirão Preto</div>
+        <!-- ✅ Título agora é o nome do cliente -->
+        <h1>Gigante Pneus</h1>
+        <!-- ✅ Sub discreto com o nome do sistema -->
+        <div class="sub">ZinapDash • Ribeirão Preto</div>
       </div>
     </header>
 
@@ -644,7 +648,6 @@
           <div class="sub">Projeção (média YTD)</div>
         </div>
 
-        <!-- ✅ NOVA 4ª CAIXA -->
         <div class="yearBox">
           <div class="top">
             <span class="yearDot" style="background: rgba(168,85,247,.95); box-shadow:0 0 12px rgba(168,85,247,.22);"></span>
@@ -686,20 +689,15 @@
   </div>
 
 <script>
-/** ✅ sua URL do Apps Script */
 const URL_DA_API = "https://script.google.com/macros/s/AKfycbx8fKah0OA1qD-qKtc6ZudwrMBz0BXzEeU88hZUEIoIDvsVVfGqv_4mwuOrw8FF9JuBHQ/exec";
-
-/** cache local pra abrir “na hora” e depois atualizar com a nuvem */
 const LOCAL_CACHE_KEY = "zinapdash_cache_v1";
 
-/** defaults (caso Config esteja vazio) */
 let DAILY_GOAL = 20;
 let MONTHLY_GOAL = 600;
 let MARGEM_CONTRIB = 0.15;
 let GROWTH_TARGET_MONTHLY = 0.03;
 
 const GOAL_LINES = [10, 20, 30];
-
 const dayNames = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 const monthNames = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
@@ -825,7 +823,6 @@ function applyConfigFromState(){
   if(cfg.MARGEM_CONTRIB != null) MARGEM_CONTRIB = Number(cfg.MARGEM_CONTRIB) || MARGEM_CONTRIB;
   if(cfg.GROWTH_TARGET_MONTHLY != null) GROWTH_TARGET_MONTHLY = Number(cfg.GROWTH_TARGET_MONTHLY) || GROWTH_TARGET_MONTHLY;
 
-  // atualiza label “MC 15%”
   document.querySelector('#mROI')?.parentElement?.querySelector('.mSub')?.textContent &&
     (document.querySelector('#mROI').parentElement.querySelector('.mSub').textContent = `MC ${(MARGEM_CONTRIB*100).toFixed(0)}%`);
 
@@ -835,10 +832,7 @@ function applyConfigFromState(){
 
 function saveCache(){
   try{
-    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify({
-      state,
-      ts: Date.now()
-    }));
+    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify({ state, ts: Date.now() }));
   }catch(e){}
 }
 function loadCache(){
@@ -926,11 +920,7 @@ function baseYScale(){
   return {
     beginAtZero:true,
     max: 45,
-    ticks:{
-      stepSize: 5,
-      color:"rgba(243,244,246,.42)",
-      font:{ size: 11 }
-    },
+    ticks:{ stepSize: 5, color:"rgba(243,244,246,.42)", font:{ size: 11 } },
     grid:{ color:"rgba(255,255,255,.05)" }
   };
 }
@@ -969,7 +959,6 @@ function positionWeekPillsToChart(chart){
 
   for(let i=0; i<7; i++){
     const center = x.getPixelForTick(i);
-
     const prevCenter = (i === 0) ? leftEdge : x.getPixelForTick(i-1);
     const nextCenter = (i === 6) ? rightEdge : x.getPixelForTick(i+1);
 
@@ -981,34 +970,23 @@ function positionWeekPillsToChart(chart){
   }
 }
 
-function setFocusPreview(text){
-  document.getElementById("focusLabel").textContent = text;
-}
-function cacheFocusLabel(){
-  focusLabelCache = document.getElementById("focusLabel").textContent || "";
-}
-function restoreFocusLabel(){
-  if(focusLabelCache) document.getElementById("focusLabel").textContent = focusLabelCache;
-}
+function setFocusPreview(text){ document.getElementById("focusLabel").textContent = text; }
+function cacheFocusLabel(){ focusLabelCache = document.getElementById("focusLabel").textContent || ""; }
+function restoreFocusLabel(){ if(focusLabelCache) document.getElementById("focusLabel").textContent = focusLabelCache; }
 
 function showTip(pillEl, text){
   if(!text) return;
   hoverTip.textContent = text;
-
   const r = pillEl.getBoundingClientRect();
   const x = r.left + r.width/2;
   const y = r.top - 10;
-
   hoverTip.style.left = x + "px";
   hoverTip.style.top = y + "px";
   hoverTip.style.transform = "translate(-50%, -100%)";
   hoverTip.classList.add("show");
 }
-function hideTip(){
-  hoverTip.classList.remove("show");
-}
+function hideTip(){ hoverTip.classList.remove("show"); }
 
-/** ✅ preview por 0,5s */
 function showPreviewFor(pill, text, ms=500){
   if(!text) return;
   cacheFocusLabel();
@@ -1291,7 +1269,6 @@ function renderIndicatorsAndRevenueYear(){
     prev.push(Number(state.financials[keyPrev]?.revenue ?? 0));
   }
 
-  // ✅ YTD correto (até o mês selecionado)
   const ytdCur = cur.slice(0, month+1).reduce((s,v)=>s+v,0);
   const ytdPrev = prev.slice(0, month+1).reduce((s,v)=>s+v,0);
 
@@ -1307,7 +1284,6 @@ function renderIndicatorsAndRevenueYear(){
   const avgSoFar = monthsSoFar > 0 ? (ytdCur / monthsSoFar) : 0;
   const projectedCur = Math.round(avgSoFar * 12);
 
-  // ✅ Crescimento no box do ano atual
   const yLine = document.getElementById("ytdGrowthLine");
   if(yLine){
     yLine.style.display = "flex";
@@ -1321,7 +1297,6 @@ function renderIndicatorsAndRevenueYear(){
   document.getElementById("labelCurYear").textContent = `Acumulado ${curYear}`;
   document.getElementById("labelProjYear").textContent = `Projetado ${curYear}`;
 
-  // ✅ sub: acumulado até mês selecionado
   const untilTxt = `Acumulado até ${monthNames[month]}`;
   document.getElementById("sumPrevSub").textContent = untilTxt;
   document.getElementById("sumCurSub").textContent = untilTxt;
@@ -1330,7 +1305,6 @@ function renderIndicatorsAndRevenueYear(){
   document.getElementById("sumCur").textContent = currencyBR(ytdCur);
   document.getElementById("sumProj").textContent = currencyBR(projectedCur);
 
-  // ✅ MCL (pós-mídia) YTD = Σ( receita*MC - investimento )
   let mclYtd = 0;
   for(let mm=0; mm<=month; mm++){
     const key = `${curYear}-${String(mm+1).padStart(2,"0")}`;
@@ -1341,7 +1315,6 @@ function renderIndicatorsAndRevenueYear(){
   document.getElementById("sumMCL").textContent = currencyBR(mclYtd);
   document.getElementById("sumMCLSub").textContent = untilTxt;
 
-  // gráfico anual
   if(yearRevenueChart) yearRevenueChart.destroy();
   const ctx = document.getElementById("yearRevenueChart").getContext("2d");
 
@@ -1401,17 +1374,12 @@ function renderIndicatorsAndRevenueYear(){
           }
         },
         tooltip:{
-          callbacks:{
-            label:(ctx)=> ` ${ctx.dataset.label}: ${currencyBR(ctx.raw)}`
-          }
+          callbacks:{ label:(ctx)=> ` ${ctx.dataset.label}: ${currencyBR(ctx.raw)}` }
         }
       },
       scales:{
         x:{ grid:{ display:false }, ticks:{ color:"rgba(243,244,246,.55)", font:{ size: 11 } } },
-        y:{
-          grid:{ color:"rgba(255,255,255,.05)" },
-          ticks:{ color:"rgba(243,244,246,.42)", callback:(v)=> (v/1000).toFixed(0)+"k" }
-        }
+        y:{ grid:{ color:"rgba(255,255,255,.05)" }, ticks:{ color:"rgba(243,244,246,.42)", callback:(v)=> (v/1000).toFixed(0)+"k" } }
       }
     }
   });
@@ -1501,7 +1469,6 @@ window.addEventListener("resize", ()=>{
 (async function init(){
   initSelectors();
 
-  // abre rápido com cache
   const hadCache = loadCache();
   if(hadCache){
     syncFocusToSelectedMonth();
@@ -1509,16 +1476,13 @@ window.addEventListener("resize", ()=>{
     renderAll();
   }
 
-  // depois atualiza com nuvem
   try{
     await fetchFromApi();
     syncFocusToSelectedMonth();
     rebuildWeekSelect();
     renderAll();
   }catch(e){
-    // se falhar, fica com o que tiver em cache
     if(!hadCache){
-      // sem cache e sem nuvem: render vazio
       renderAll();
     }
   }
